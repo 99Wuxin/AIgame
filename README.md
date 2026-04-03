@@ -48,6 +48,21 @@ npx wrangler pages deploy dist --project-name=<你的 Pages 项目名>
 
 （与 `wrangler deploy` 不同。）
 
+### 线上只看到「Hello world」、没有田园心语界面
+
+页面上只有 **`Hello world` 纯文字** 时，**不是**本仓库构建出来的页面（本应用标题为「田园心语」）。常见原因：
+
+1. **域名 `statutebill.com` 上绑了别的 [Worker](https://developers.cloudflare.com/workers/)**，默认脚本返回 `Hello world`，且路由优先级高于 Pages。
+2. **Workers 路由** 把 `/aigame` 指到了该 Worker，而不是你的 Pages 项目。
+
+请在本仓库 **Cloudflare** 里检查：
+
+- **Workers & Pages** → 是否有名为 `hello-world` / 默认模板的 Worker 绑在 `statutebill.com` 或 `*/aigame`；
+- **域名** → **Workers 路由** / **Triggers** 里是否把路径指错；
+- 需要让 **`/aigame`**（或整站）指向 **Pages 部署** 的源，或先 **禁用/删除** 冲突的 Worker 路由。
+
+若站点挂在 **子路径** `https://statutebill.com/aigame/`：在 Pages 的 **Environment variables**（Production）里增加 **`VITE_BASE_PATH=/aigame/`**，重新执行 **`npm run build`** 部署，否则 JS/CSS 可能 404（页面空白或异常）。
+
 ## 本地开发
 
 ```bash

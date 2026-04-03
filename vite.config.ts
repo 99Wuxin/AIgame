@@ -4,9 +4,11 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
+  const base = env.VITE_BASE_PATH || "./";
+
   return {
     plugins: [react()],
-    base: "./",
+    base,
     server: {
       proxy:
         env.VITE_USE_OPENROUTER_PROXY === "true"
