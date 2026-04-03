@@ -1,4 +1,6 @@
-name = "99"
+# 名称须与 Cloudflare「Workers Builds」里绑定的 Worker 一致（例如 aigame），否则 CI 会覆盖并可能触发路由冲突。
+# 若部署报 code 10020：旧 Worker「99」仍占用 statutebill.com 路由 — 在控制台打开 Worker 99 → Triggers/Routes，删掉与下面相同的 pattern，或删除已不再使用的 Worker 99，再重新部署。
+name = "aigame"
 main = "server/src/index.js"
 compatibility_date = "2026-03-23"
 

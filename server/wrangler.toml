@@ -1,5 +1,5 @@
 # API-only config (e.g. wrangler dev -w server). Production site: run `npm run deploy:worker` from repo root (uses ../wrangler.toml + client/dist).
-name = "99" # Must match the Worker name in the Cloudflare dashboard
+name = "aigame" # 与根目录 wrangler.toml、Cloudflare CI 项目 Worker 名一致
 main = "src/index.js"
 compatibility_date = "2026-03-23"
 
