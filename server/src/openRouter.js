@@ -64,8 +64,8 @@ export async function openRouterChatCompletion(env, chatBody) {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": env?.OPENROUTER_HTTP_REFERER || "https://statutebill.com",
-      "X-Title": env?.OPENROUTER_APP_TITLE || "Statute Bill"
+      "HTTP-Referer": env?.OPENROUTER_HTTP_REFERER || "https://github.com/99Wuxin/AIgame",
+      "X-Title": env?.OPENROUTER_APP_TITLE || "田园心语 Pixel Farm"
     },
     body: JSON.stringify(body)
   });

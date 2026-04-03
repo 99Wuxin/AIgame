@@ -1,21 +1,4 @@
-# API-only config (e.g. wrangler dev -w server). Production site: run `npm run deploy:worker` from repo root (uses ../wrangler.toml + client/dist).
-name = "aigame" # 与根目录 wrangler.toml、Cloudflare CI 项目 Worker 名一致
+# 仅本地 wrangler dev -w server；生产以仓库根目录 wrangler.toml 为准
+name = "aigame"
 main = "src/index.js"
 compatibility_date = "2026-03-23"
-
-[vars]
-# LLM: OpenRouter only — model fixed in code (qwen/qwen3.6-plus:free)
-# Secrets: `wrangler secret put OPENROUTER_API_KEY`
-# Local dev: `.dev.vars` with OPENROUTER_API_KEY=... (never commit)
-# Optional: OPENROUTER_REASONING=true (may interact with JSON mode)
-
-# Uncomment to add R2 for image/asset storage later
-# [[r2_buckets]]
-# binding = 'R2_BUCKET'
-# bucket_name = 'medisaver-assets'
-
-# D1 (same as root wrangler.toml)
-[[d1_databases]]
-binding = "DB"
-database_name = "statutebill-users"
-database_id = "47000a96-019b-497a-a0db-f73fce97922f"
