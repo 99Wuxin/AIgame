@@ -76,6 +76,10 @@ export async function generateAgentDialogue(
     关系亲密度0到100: ctx.bond,
     Alex心情0到100: ctx.moodA,
     Mia心情0到100: ctx.moodM,
+    社交财务张力0到100: ctx.socialTension ?? 0,
+    流动商人刘是否在场: Boolean(ctx.liuVisible),
+    谷仓扩建进度0到100: ctx.barnProgress ?? 0,
+    异域作物地块数: ctx.exoticCropCount ?? 0,
   });
 
   const messagesBase: ChatMessage[] = [

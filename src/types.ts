@@ -9,6 +9,20 @@ export interface CropCell {
   id: number;
   stage: number;
   tick: number;
+  /** 流动商人刘带来的异域种子 */
+  exotic?: boolean;
+}
+
+export interface LiuState {
+  visible: boolean;
+  pos: number;
+  timerSec: number;
+  cooldownSec: number;
+}
+
+export interface JiaState {
+  /** 谷仓合作扩建 0–100 */
+  barnProgress: number;
 }
 
 export interface DialogueContext {
@@ -18,6 +32,10 @@ export interface DialogueContext {
   bond: number;
   moodA: number;
   moodM: number;
+  socialTension?: number;
+  liuVisible?: boolean;
+  barnProgress?: number;
+  exoticCropCount?: number;
 }
 
 export interface DialogueResult {

@@ -1,28 +1,45 @@
 import { useEffect, useMemo, useState } from "react";
-import type { CropCell, DialogueResult } from "../types";
+import type { CropCell, DialogueResult, JiaState, LiuState } from "../types";
 import { SpeechBubble } from "./SpeechBubble";
 
-function cropEmoji(stage: number) {
+function cropEmoji(stage: number, exotic?: boolean) {
+  if (exotic) {
+    if (stage === 0) return "·";
+    if (stage === 1) return "🌿";
+    return "🌶";
+  }
   if (stage === 0) return "·";
   if (stage === 1) return "🌱";
   return "🥬";
 }
 
-function cropClass(stage: number) {
-  if (stage === 0) return "crop crop--seed";
-  if (stage === 1) return "crop crop--sprout";
-  return "crop crop--grown";
+function cropClass(stage: number, exotic?: boolean) {
+  const base =
+    stage === 0 ? "crop crop--seed" : stage === 1 ? "crop crop--sprout" : "crop crop--grown";
+  return exotic ? `${base} crop--exotic` : base;
 }
 
 type Props = {
   crops: CropCell[];
   alexPos: number;
   miaPos: number;
+  liu: LiuState;
+  jia: JiaState;
+  socialCaption?: string;
   pendingDialogue: DialogueResult | undefined;
   onDialogueEnd: () => void;
 };
 
-export function FarmScene({ crops, alexPos, miaPos, pendingDialogue, onDialogueEnd }: Props) {
+export function FarmScene({
+  crops,
+  alexPos,
+  miaPos,
+  liu,
+  jia,
+  socialCaption,
+  pendingDialogue,
+  onDialogueEnd,
+}: Props) {
   const [phase, setPhase] = useState<"idle" | "alex" | "mia">("idle");
   const heartBurstId = useMemo(
     () => (pendingDialogue ? `${pendingDialogue.alex.slice(0, 12)}-${pendingDialogue.mia.slice(0, 12)}` : ""),
@@ -60,6 +77,18 @@ export function FarmScene({ crops, alexPos, miaPos, pendingDialogue, onDialogueE
         <span className="barn-label">谷仓</span>
       </div>
 
+      <div className="barn-build" aria-hidden>
+        <div className="barn-build__scaffold" />
+        <div className="builder-jia">
+          <span className="jia-jacket" title="蓝图夹克" />
+          <span className="jia-body" />
+          <span className="char-name char-name--small">佳</span>
+        </div>
+        <div className="barn-build__bar" title={`谷仓扩建 ${Math.round(jia.barnProgress)}%`}>
+          <div className="barn-build__fill" style={{ width: `${jia.barnProgress}%` }} />
+        </div>
+      </div>
+
       <div className="greenhouse">
         <div className="gh-roof" />
         <span className="gh-label">温室</span>
@@ -76,11 +105,30 @@ export function FarmScene({ crops, alexPos, miaPos, pendingDialogue, onDialogueE
 
       <div className="crops">
         {crops.map((c) => (
-          <div key={c.id} className={cropClass(c.stage)} title="作物">
-            {cropEmoji(c.stage)}
+          <div key={c.id} className={cropClass(c.stage, c.exotic)} title={c.exotic ? "异域作物" : "作物"}>
+            {cropEmoji(c.stage, c.exotic)}
           </div>
         ))}
       </div>
+
+      {liu.visible ? (
+        <div className="liu-vendor" style={{ left: `${liu.pos}%` }}>
+          <span className="liu-cart" title="流动货车">
+            🛒
+          </span>
+          <div className="liu-figure">
+            <span className="liu-hat" />
+            <span className="liu-coat" />
+          </div>
+          <span className="char-name char-name--small">刘</span>
+        </div>
+      ) : null}
+
+      {socialCaption ? (
+        <div className="scene-caption" role="status">
+          {socialCaption}
+        </div>
+      ) : null}
 
       <div className="characters">
         <div className="character character--alex" style={{ left: `${alexPos}%` }}>

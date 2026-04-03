@@ -1,14 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
 import { DEFAULT_MODEL, isOpenRouterProxyBuild, STORAGE_BASE, STORAGE_KEY, STORAGE_MODEL } from "../lib/openrouter";
 
-type LeftProps = { bond: number };
+type LeftProps = {
+  bond: number;
+  alexPersonalityZh: string;
+  alexPersonalityEn: string;
+  miaPersonalityZh: string;
+  miaPersonalityEn: string;
+};
 
 function readLs(key: string) {
   if (typeof localStorage === "undefined") return "";
   return localStorage.getItem(key) ?? "";
 }
 
-export function LeftPanel({ bond }: LeftProps) {
+export function LeftPanel({
+  bond,
+  alexPersonalityZh,
+  alexPersonalityEn,
+  miaPersonalityZh,
+  miaPersonalityEn,
+}: LeftProps) {
   const [apiKey, setApiKey] = useState(() => readLs(STORAGE_KEY));
   const [apiBase, setApiBase] = useState(() => readLs(STORAGE_BASE));
   const [model, setModel] = useState(() => readLs(STORAGE_MODEL) || DEFAULT_MODEL);
@@ -71,6 +83,21 @@ export function LeftPanel({ bond }: LeftProps) {
           </div>
           <div style={{ marginTop: 6, fontSize: "0.72rem", color: "var(--muted)" }}>亲密度 {Math.round(bond)} / 100</div>
         </div>
+      </div>
+
+      <div className="personality-block">
+        <h3 className="personality-block__title">进化性个性</h3>
+        <div className="personality-card" data-who="alex">
+          <div className="personality-card__name">Alex</div>
+          <p className="personality-card__zh">{alexPersonalityZh}</p>
+          <p className="personality-card__en">{alexPersonalityEn}</p>
+        </div>
+        <div className="personality-card" data-who="mia">
+          <div className="personality-card__name">Mia</div>
+          <p className="personality-card__zh">{miaPersonalityZh}</p>
+          <p className="personality-card__en">{miaPersonalityEn}</p>
+        </div>
+        <p className="personality-block__hint">特质随丰收、商人到访、关系张力等经历缓慢演变。</p>
       </div>
       <div className="llm-hint">
         <label className="llm-label">OpenRouter API</label>

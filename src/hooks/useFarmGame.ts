@@ -4,10 +4,20 @@ import type {
   CropCell,
   DialogueResult,
   InterventionState,
+  JiaState,
+  LiuState,
   LogEntry,
   Needs,
 } from "../types";
 import { autoPickOption, fetchFutureProposal } from "../lib/intervention";
+import {
+  evolveAlex,
+  evolveMia,
+  initialAlexPersonality,
+  initialMiaPersonality,
+  type TraitWeights,
+} from "../lib/personality";
+import { generateThought, type ThoughtLine } from "../lib/thoughts";
 import { generateAgentDialogue } from "../lib/openrouter";
 
 const SEASONS = ["春", "夏", "秋", "冬"];
@@ -45,6 +55,19 @@ export interface GameSnapshot {
   intervention: InterventionState | null;
   interventionLoading: boolean;
   interventionCooldownSec: number;
+  /** 流动商人刘 */
+  liu: LiuState;
+  /** 建造者佳 · 谷仓扩建 */
+  jia: JiaState;
+  /** 谷仓扩建里程碑是否已结算 */
+  jiaBarnRewarded: boolean;
+  alexPersonality: TraitWeights;
+  miaPersonality: TraitWeights;
+  /** 0–100：财务/优先级张力（商人等在场时上升） */
+  socialTension: number;
+  /** 实时思维日志（中英） */
+  dailyThoughts: ThoughtLine[];
+  thoughtSeed: number;
 }
 
 function initialSnapshot(): GameSnapshot {
@@ -75,6 +98,19 @@ function initialSnapshot(): GameSnapshot {
     intervention: null,
     interventionLoading: false,
     interventionCooldownSec: 10,
+    liu: {
+      visible: false,
+      pos: 76,
+      timerSec: 0,
+      cooldownSec: 35 + Math.random() * 25,
+    },
+    jia: { barnProgress: 0 },
+    jiaBarnRewarded: false,
+    alexPersonality: initialAlexPersonality(),
+    miaPersonality: initialMiaPersonality(),
+    socialTension: 0,
+    dailyThoughts: [],
+    thoughtSeed: 1,
   };
 }
 
@@ -100,11 +136,18 @@ function pushSystemLog(s: GameSnapshot, line: string) {
   s.systemLog = [line, ...s.systemLog].slice(0, 60);
 }
 
+function pushDailyThought(s: GameSnapshot) {
+  const seed = (s.thoughtSeed++ * 1103515245 + Math.floor(s.minuteOfGame * 17)) | 0;
+  const line = generateThought({ minuteOfGame: s.minuteOfGame, liuVisible: s.liu.visible }, seed);
+  s.dailyThoughts = [line, ...s.dailyThoughts].slice(0, 60);
+}
+
 export function useFarmGame() {
   const snap = useRef<GameSnapshot>(initialSnapshot());
   const [, force] = useReducer((x: number) => x + 1, 0);
   const runDialogueRef = useRef<() => Promise<void>>(async () => {});
   const resolvingIntervention = useRef(false);
+  const thoughtAccumMs = useRef(0);
 
   const getCtx = useCallback(() => {
     const s = snap.current;
@@ -115,6 +158,10 @@ export function useFarmGame() {
       bond: Math.round(s.bond),
       moodA: Math.round(s.alex.social + s.alex.love) / 2,
       moodM: Math.round(s.mia.social + s.mia.love) / 2,
+      socialTension: s.socialTension,
+      liuVisible: s.liu.visible,
+      barnProgress: s.jia.barnProgress,
+      exoticCropCount: s.crops.filter((c) => c.exotic).length,
     };
   }, []);
 
@@ -214,7 +261,11 @@ export function useFarmGame() {
       s.pendingAppend = null;
     }
 
-    const bondGain = 0.8 + Math.random() * 1.8 + (result.meta?.source === "llm" ? 0.5 : 0);
+    const bondGain =
+      0.8 +
+      Math.random() * 1.8 +
+      (result.meta?.source === "llm" ? 0.5 : 0) -
+      (s.liu.visible ? 0.35 : 0);
     s.bond = clamp(s.bond + bondGain, 0, 100);
     s.alex.social = clamp(s.alex.social + 4 + Math.random() * 6, 0, 100);
     s.mia.social = clamp(s.mia.social + 4 + Math.random() * 6, 0, 100);
@@ -236,6 +287,7 @@ export function useFarmGame() {
     welcomeOnce.current = true;
     pushLog(snap.current, "欢迎来到田园心语。Alex 与 Mia 正在农场生活，自主对话即将开始……", true);
     pushSystemLog(snap.current, "[SYSTEM] Session init — player intervention window 30s when proposal active.");
+    pushDailyThought(snap.current);
     force();
   }, []);
 
@@ -270,16 +322,68 @@ export function useFarmGame() {
           if (c.tick > 100) {
             c.tick = 0;
             if (c.stage < 2) c.stage++;
-            else c.stage = 0;
+            else {
+              c.stage = 0;
+              evolveAlex(s.alexPersonality, "good_harvest");
+              evolveMia(s.miaPersonality, "good_harvest");
+              evolveMia(s.miaPersonality, "data_adjust");
+              pushLog(s, "一块地作物收获完毕。", false);
+            }
           }
         });
+        if (s.jia.barnProgress < 100) {
+          const p = dt * 0.000045 * s.timeScale;
+          s.jia.barnProgress = Math.min(100, s.jia.barnProgress + p);
+          if (s.jia.barnProgress >= 100 && !s.jiaBarnRewarded) {
+            s.jiaBarnRewarded = true;
+            evolveAlex(s.alexPersonality, "barn_milestone");
+            pushLog(s, "佳：谷仓扩建阶段性完工。", true);
+          }
+        }
+        if (s.liu.visible) {
+          s.liu.timerSec -= (dt / 1000) * s.timeScale;
+          if (s.liu.timerSec <= 0) {
+            s.liu.visible = false;
+            s.liu.cooldownSec = 90 + Math.random() * 90;
+            evolveAlex(s.alexPersonality, "liu_departure");
+            pushLog(s, "刘的车驾渐行渐远……", false);
+          }
+        } else {
+          s.liu.cooldownSec -= (dt / 1000) * s.timeScale;
+          if (s.liu.cooldownSec <= 0 && Math.random() < 0.00055 * dt) {
+            s.liu.visible = true;
+            s.liu.timerSec = 32 + Math.random() * 35;
+            s.liu.pos = 74;
+            evolveAlex(s.alexPersonality, "merchant_visit");
+            evolveMia(s.miaPersonality, "merchant_visit");
+            const order = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - 0.5);
+            order.slice(0, 2).forEach((i) => {
+              s.crops[i]!.exotic = true;
+            });
+            pushLog(s, "流动商人刘驾到……带来新的种子。", true);
+          }
+        }
+        if (s.liu.visible) {
+          s.socialTension = clamp(s.socialTension + dt * 0.00006 * s.timeScale, 0, 100);
+        } else {
+          s.socialTension = clamp(s.socialTension - dt * 0.000025 * s.timeScale, 0, 100);
+        }
+        thoughtAccumMs.current += dt;
+        if (thoughtAccumMs.current >= 5200 + (s.thoughtSeed % 6000)) {
+          thoughtAccumMs.current = 0;
+          pushDailyThought(s);
+        }
         if (!s.dialogueBusy) {
           s.dialogueCooldown = Math.max(0, s.dialogueCooldown - dt / 1000);
         }
         if (s.interventionCooldownSec > 0 && s.interventionCooldownSec < 90000) {
           s.interventionCooldownSec = Math.max(0, s.interventionCooldownSec - (dt / 1000) * s.timeScale);
         }
-        if (Math.random() < 0.002 * s.timeScale) {
+        if (s.liu.visible) {
+          s.alexPos = clamp(65 + Math.sin(s.minuteOfGame * 0.4) * 4, 58, 78);
+          s.miaPos = clamp(24 + Math.sin(s.minuteOfGame * 0.15) * 2, 18, 42);
+          s.liu.pos = clamp(72 + Math.sin(s.minuteOfGame * 0.25) * 1.5, 68, 78);
+        } else if (Math.random() < 0.002 * s.timeScale) {
           const mid = 42 + Math.random() * 16;
           s.alexPos = clamp(mid - 8 - Math.random() * 6, 22, 48);
           s.miaPos = clamp(mid + 6 + Math.random() * 6, 52, 78);
@@ -329,6 +433,11 @@ export function useFarmGame() {
 
   const clearPendingDialogue = useCallback(() => {
     const s = snap.current;
+    if (s.liu.visible) {
+      evolveMia(s.miaPersonality, "tension_finance");
+      evolveAlex(s.alexPersonality, "tension_with_mia");
+      s.socialTension = clamp(s.socialTension + 8, 0, 100);
+    }
     s.pendingDialogue = undefined;
     s.dialogueBusy = false;
     s.dialogueCooldown = 24 + Math.random() * 28;

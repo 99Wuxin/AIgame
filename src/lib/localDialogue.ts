@@ -42,8 +42,21 @@ function pick<T>(arr: T[], seed: number): T {
 }
 
 export function localExchange(ctx: DialogueContext): DialogueResult {
-  const { day, season, hour, bond, moodA, moodM } = ctx;
-  const seed = hashString(`${day}-${season}-${hour}-${bond}-${moodA}-${moodM}`);
+  const { day, season, hour, bond, moodA, moodM, socialTension = 0, liuVisible, barnProgress = 0 } = ctx;
+  const seed = hashString(`${day}-${season}-${hour}-${bond}-${moodA}-${moodM}-${socialTension}`);
+  if (liuVisible && seed % 2 === 0) {
+    const alex = `我在和刘核对进货记录，他在推销特制有机肥——我得算清楚再签字。${pick(ALEX_LINES, seed)}`;
+    const mia =
+      socialTension > 40
+        ? `我在远处看着……若真要扩建羊圈和囤冬装羊毛，这笔开销得和收成对上。${pick(MIA_LINES, seed + 1)}`
+        : `刘带来的异域种子已经下地了。我在想：若以后养羊，干草和冬装预算要怎么摊。${pick(MIA_LINES, seed + 2)}`;
+    return { alex, mia, meta: { source: "local" } };
+  }
+  if (barnProgress > 55 && seed % 3 === 0) {
+    const alex = `佳把谷仓梁木架好了（进度约 ${Math.round(barnProgress)}%）。我在想以后能多养几只，冬天就有羊毛做衣服。`;
+    const mia = `数据上温室与牧草轮作可以并行——我先把「过冬计划表」写进笔记里。${pick(REPLIES, seed)}`;
+    return { alex, mia, meta: { source: "local" } };
+  }
   const a1 = pick(OPENINGS, seed);
   const topic = pick(TOPICS, seed + 1);
   const alex = `${a1}${topic}的时候，${pick(ALEX_LINES, seed + 2)}`;
