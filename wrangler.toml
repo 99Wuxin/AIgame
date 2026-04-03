@@ -4,13 +4,10 @@ main = "server/src/index.js"
 compatibility_date = "2026-03-23"
 workers_dev = true
 
-[[routes]]
-pattern = "statutebill.com/*"
-zone_name = "statutebill.com"
-
-[[routes]]
-pattern = "www.statutebill.com/*"
-zone_name = "statutebill.com"
+# 勿在此声明 [[routes]]，否则 CI 部署会与仍占用 statutebill.com 的旧 Worker「99」冲突（API code 10020）。
+# 做法二选一：
+# 1) 控制台删除 Worker 99 上相同 pattern 的路由后，再把 [[routes]] 加回本文件；或
+# 2) 在控制台为 Worker「aigame」手动绑定自定义域 / 路由（不通过 wrangler 写路由）。
 
 [assets]
 directory = "client/dist"
