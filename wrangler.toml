@@ -1,7 +1,7 @@
-# Cloudflare Pages：构建输出 dist，Functions 位于 /functions
-# 部署后在 Pages → Settings → Variables and Secrets 中设置：
-# - Secret: OPENROUTER_API_KEY
-# - 构建变量: VITE_USE_OPENROUTER_PROXY=true（见 README）
+# Cloudflare Pages（不要用 `wrangler deploy`，见 README）
+# 构建: npm run build → 输出 dist；根目录 functions/ 随 Pages 发布
+# 手动上传: npx wrangler pages deploy dist --project-name=<名称>
+# Secrets: OPENROUTER_API_KEY（Pages → Variables and Secrets）
 
 name = "aigame"
 compatibility_date = "2024-11-25"

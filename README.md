@@ -23,6 +23,30 @@
 
 本地用 Vite 模拟代理时：复制 `.env.example` 为 `.env.local`，设置 `VITE_USE_OPENROUTER_PROXY=true` 与 `OPENROUTER_API_KEY`，再 `npm run dev`。
 
+### Cloudflare Pages 控制台（避免 `wrangler deploy` 报错）
+
+日志里若出现 `Missing entry-point to Worker script` 或提示应使用 `wrangler pages deploy`，说明 **Deploy command 配错了**。
+
+在 Pages 项目 → **Settings** → **Builds** 中建议如下：
+
+| 项 | 值 |
+| --- | --- |
+| **Build command** | `npm run build` |
+| **Build output directory** | `dist` |
+
+- **不要**填写 **`npx wrangler deploy`**。那是 [Workers](https://developers.cloudflare.com/workers/wrangler/commands/#deploy) 的部署命令；本仓库是 **Pages**（静态 `dist` + 根目录 `functions/`），构建完成后由 Pages **自动发布**，无需单独 deploy 命令。
+- 若存在 **Deploy command**、**Custom deploy** 等额外步骤，请 **留空** 或删除，只保留上面的 build + output。
+- 根目录 `functions/` 会随 Pages 一起部署，无需 `wrangler deploy`。
+
+本机用 CLI 手动上传到 Pages 时，应使用：
+
+```bash
+npm run build
+npx wrangler pages deploy dist --project-name=<你的 Pages 项目名>
+```
+
+（与 `wrangler deploy` 不同。）
+
 ## 本地开发
 
 ```bash
