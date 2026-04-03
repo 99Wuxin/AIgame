@@ -36,6 +36,7 @@
 
 - **不要**填写 **`npx wrangler deploy`**。那是 [Workers](https://developers.cloudflare.com/workers/wrangler/commands/#deploy) 的部署命令；本仓库是 **Pages**（静态 `dist` + 根目录 `functions/`），构建完成后由 Pages **自动发布**，无需单独 deploy 命令。
 - 若存在 **Deploy command**、**Custom deploy** 等额外步骤，请 **留空** 或删除，只保留上面的 build + output。
+- **若控制台不允许留空 Deploy command**（保存后仍强制执行 `wrangler deploy`）：把 Deploy command 改成 **`npm run deploy`**。本仓库的 `deploy` 脚本为空操作（直接退出 0），不会调用 Wrangler；Pages 仍会在构建完成后照常发布 `dist` 与 `functions/`。
 - 根目录 `functions/` 会随 Pages 一起部署，无需 `wrangler deploy`。
 
 本机用 CLI 手动上传到 Pages 时，应使用：
