@@ -4,7 +4,10 @@ main = "server/src/index.js"
 compatibility_date = "2026-03-23"
 workers_dev = true
 
-# 仅子路径：与 Worker「99」的 statutebill.com/* 不重复，避免 code 10020
+# 仅子路径：与 Worker「99」的 statutebill.com/* 不重复（避免 code 10020）。
+# 若打开 /aigame/ 只有标题、白屏：99 的「全站路由」仍会先吃掉 /aigame/assets/*.js。
+# 请在 Worker 99 里用 Service binding 把 /aigame 整段转发给 aigame（见 worker99-aigame-forward.js），
+# 或在 Cloudflare 路由列表里让「aigame*」规则优先于 99 的「*」（视账号界面而定）。
 [[routes]]
 pattern = "statutebill.com/aigame*"
 zone_name = "statutebill.com"

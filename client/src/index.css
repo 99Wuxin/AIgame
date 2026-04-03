@@ -13,3 +13,21 @@ body {
 #root {
   min-height: 100vh;
 }
+
+.boot-hint {
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 40rem;
+  margin: 2rem auto;
+  padding: 1rem 1.25rem;
+  background: #fff8e6;
+  border: 2px solid #c9a227;
+  color: #333;
+}
+
+.boot-hint code {
+  font-size: 0.9em;
+  background: #eee;
+  padding: 0 4px;
+}
