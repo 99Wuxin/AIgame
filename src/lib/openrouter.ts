@@ -12,6 +12,11 @@ const STORAGE_KEY = "farm_llm_key";
 const STORAGE_BASE = "farm_llm_base";
 const STORAGE_MODEL = "farm_llm_model";
 
+/** 构建时设 VITE_USE_OPENROUTER_PROXY=true，请求同源 /api/chat-proxy（Pages Function） */
+export function isOpenRouterProxyBuild(): boolean {
+  return import.meta.env.VITE_USE_OPENROUTER_PROXY === "true";
+}
+
 export function parseDialogueJson(raw: string | null | undefined): { alex: string; mia: string } | null {
   if (!raw || typeof raw !== "string") return null;
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -48,11 +53,13 @@ export async function generateAgentDialogue(
   ctx: DialogueContext,
   options: { apiKey?: string; baseUrl?: string; model?: string } = {},
 ): Promise<DialogueResult> {
+  const storageBase = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_BASE) : null;
+  const useCfProxy = isOpenRouterProxyBuild() && !storageBase;
   const apiKey = options.apiKey ?? localStorage.getItem(STORAGE_KEY) ?? "";
-  const baseUrl = (options.baseUrl ?? localStorage.getItem(STORAGE_BASE) ?? DEFAULT_BASE).replace(/\/$/, "");
+  const baseUrl = (options.baseUrl ?? (storageBase || DEFAULT_BASE)).replace(/\/$/, "");
   const model = options.model ?? localStorage.getItem(STORAGE_MODEL) ?? DEFAULT_MODEL;
 
-  if (!apiKey) {
+  if (!useCfProxy && !apiKey) {
     return localExchange(ctx);
   }
 
@@ -76,18 +83,23 @@ export async function generateAgentDialogue(
     { role: "user", content: userPayload },
   ];
 
-  const openRouter = isOpenRouterBase(baseUrl);
+  const openRouter = isOpenRouterBase(baseUrl) || useCfProxy;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${apiKey}`,
   };
+  if (!useCfProxy && apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
   if (openRouter && typeof window !== "undefined" && window.location?.origin) {
     headers["HTTP-Referer"] = window.location.origin;
     headers["X-Title"] = "田园心语";
   }
 
   async function postChat(body: Record<string, unknown>) {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
+    const url = useCfProxy
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/chat-proxy`
+      : `${baseUrl}/chat/completions`;
+    const res = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify(body),
