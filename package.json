@@ -1,27 +1,17 @@
 {
-  "name": "aigame",
+  "name": "healthcare-billing-arbitrage",
   "private": true,
-  "version": "1.0.0",
-  "type": "module",
+  "workspaces": [
+    "server",
+    "client"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "pages:deploy": "npm run build && wrangler pages deploy dist",
-    "deploy": "npm run build && wrangler pages deploy dist",
-    "deploy:noop": "node -e \"process.exit(0)\""
-  },
-  "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "deploy:worker": "npm run build && wrangler deploy"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "~5.7.2",
-    "vite": "^6.0.0",
-    "wrangler": "^4.80.0"
+    "concurrently": "^9.1.2"
   }
 }
