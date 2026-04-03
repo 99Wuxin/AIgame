@@ -134,6 +134,11 @@ const app = new Hono();
 /** workers.dev 根路径方便跳进子应用 */
 app.get("/", (c) => c.redirect(`${PUBLIC_BASE}/`, 302));
 
+/**
+ * 必须显式处理无尾斜杠：仅 /aigame 时部分网关+Hono 组合会 404（应用挂在 /aigame/ 下）
+ */
+app.get("/aigame", (c) => c.redirect(`${PUBLIC_BASE}/`, 302));
+
 app.route(PUBLIC_BASE, game);
 
 export default app;
