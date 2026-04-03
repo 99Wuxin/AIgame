@@ -19,7 +19,7 @@ zone_name = "statutebill.com"
 [assets]
 directory = "client/dist"
 binding = "ASSETS"
-not_found_handling = "single-page-application"
+# 勿用 single-page-application：缺失的 *.js 会被回退成 index.html → 浏览器报 MIME text/html
 
 # 密钥：wrangler secret put OPENROUTER_API_KEY
 # 本地：server/.dev.vars 写 OPENROUTER_API_KEY=sk-or-...
