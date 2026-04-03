@@ -3,9 +3,12 @@ import { cors } from "hono/cors";
 import { isOpenRouterConfigured, openRouterChatCompletion, openRouterModel } from "./openRouter.js";
 import { parseFarmDialogueJson } from "./farmDialogue.js";
 
-const app = new Hono();
+/** 与 Vite base、wrangler 子路径路由一致（生产：https://statutebill.com/aigame/） */
+export const PUBLIC_BASE = "/aigame";
 
-app.use(
+const game = new Hono();
+
+game.use(
   "/api/*",
   cors({
     origin: "*",
@@ -14,13 +17,9 @@ app.use(
   })
 );
 
-app.get("/api/health", (c) => c.json({ ok: true, service: "pixel-farm-ai" }));
+game.get("/api/health", (c) => c.json({ ok: true, service: "pixel-farm-ai", base: PUBLIC_BASE }));
 
-/**
- * Body: { day, season, hour, bond, moodA, moodM, alexNeeds, miaNeeds, cropSummary }
- * Returns: { alex, mia, meta: { source: "llm"|"local", error? } }
- */
-app.post("/api/farm/chat", async (c) => {
+game.post("/api/farm/chat", async (c) => {
   try {
     const body = await c.req.json().catch(() => ({}));
     const ctx = {
@@ -120,17 +119,21 @@ app.post("/api/farm/chat", async (c) => {
   }
 });
 
-app.get("/", async (c) => {
-  if (c.env?.ASSETS) return c.env.ASSETS.fetch(c.req.raw);
+game.get("*", async (c) => {
+  if (c.req.path.startsWith("/api")) {
+    return c.json({ error: "Not found" }, 404);
+  }
+  if (c.env?.ASSETS) {
+    return c.env.ASSETS.fetch(c.req.raw);
+  }
   return c.text("Build client: npm run build -w client", 503);
 });
 
-app.get("*", async (c) => {
-  if (c.req.path.startsWith("/api/")) {
-    return c.json({ error: "Not found" }, 404);
-  }
-  if (c.env?.ASSETS) return c.env.ASSETS.fetch(c.req.raw);
-  return c.text("Not found", 404);
-});
+const app = new Hono();
+
+/** workers.dev 根路径方便跳进子应用 */
+app.get("/", (c) => c.redirect(`${PUBLIC_BASE}/`, 302));
+
+app.route(PUBLIC_BASE, game);
 
 export default app;

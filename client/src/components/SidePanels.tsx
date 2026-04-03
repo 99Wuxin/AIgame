@@ -13,8 +13,9 @@ export function LeftPanel({ bond }: Props) {
       </div>
       <div className="hint-box pixel-border">
         <p className="hint-box__p">
-          对话由 <strong>OpenRouter</strong>（服务端 <code>OPENROUTER_API_KEY</code>）生成；本地请同时运行{" "}
-          <code>wrangler dev</code> 与 <code>npm run dev -w client</code>。
+          线上地址 <code>/aigame/</code>，Worker 99 仍占根域。对话由 <strong>OpenRouter</strong>（
+          <code>OPENROUTER_API_KEY</code>）生成；本地请 <code>wrangler dev</code>（根目录）+
+          <code>npm run dev -w client</code>。
         </p>
       </div>
     </aside>

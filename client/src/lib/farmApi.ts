@@ -10,7 +10,8 @@ export async function fetchFarmDialogue(payload: {
   alex: Needs;
   mia: Needs;
 }): Promise<DialogueResult> {
-  const res = await fetch("/api/farm/chat", {
+  const base = import.meta.env.BASE_URL;
+  const res = await fetch(`${base}api/farm/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
