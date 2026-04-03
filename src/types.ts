@@ -33,3 +33,31 @@ export interface DialogueResult {
 }
 
 export type LogEntry = { time: string; text: string; strong?: boolean };
+
+export interface AlexTraits {
+  diligence: number;
+  invention: number;
+}
+
+export type InterventionOptionType = "narrative" | "system" | "personality";
+
+export interface InterventionOption {
+  id: string;
+  type: InterventionOptionType;
+  titleEn: string;
+  titleZh: string;
+  descriptionZh: string;
+}
+
+export interface FutureProposalPayload {
+  options: InterventionOption[];
+  appendAlex: string;
+  appendMia: string;
+  systemLines: string[];
+  source: "llm" | "local";
+}
+
+export interface InterventionState {
+  payload: FutureProposalPayload;
+  endsAt: number;
+}

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import type { LogEntry } from "../types";
 import { DEFAULT_MODEL, isOpenRouterProxyBuild, STORAGE_BASE, STORAGE_KEY, STORAGE_MODEL } from "../lib/openrouter";
 
 type LeftProps = { bond: number };
@@ -102,27 +101,3 @@ export function LeftPanel({ bond }: LeftProps) {
   );
 }
 
-type LogProps = { logs: LogEntry[] };
-
-export function LogPanel({ logs }: LogProps) {
-  return (
-    <aside className="panel panel--right">
-      <h2>日志</h2>
-      <ul className="log-list">
-        {logs.map((log, i) => (
-          <li key={`${log.time}-${i}-${log.text.slice(0, 8)}`}>
-            {log.strong ? (
-              <>
-                <strong>[{log.time}]</strong> {log.text}
-              </>
-            ) : (
-              <>
-                [{log.time}] {log.text}
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
-    </aside>
-  );
-}

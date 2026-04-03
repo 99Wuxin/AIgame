@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import type { CropCell, DialogueResult, LogEntry, Needs } from "../types";
+import type {
+  AlexTraits,
+  CropCell,
+  DialogueResult,
+  InterventionState,
+  LogEntry,
+  Needs,
+} from "../types";
+import { autoPickOption, fetchFutureProposal } from "../lib/intervention";
 import { generateAgentDialogue } from "../lib/openrouter";
 
 const SEASONS = ["春", "夏", "秋", "冬"];
@@ -29,6 +37,14 @@ export interface GameSnapshot {
   dialogueBusy: boolean;
   logs: LogEntry[];
   pendingDialogue?: DialogueResult;
+  pendingAppend?: { alex: string; mia: string } | null;
+  alexTraits: AlexTraits;
+  soilGreenhouse: string;
+  cropPolicy: string | null;
+  systemLog: string[];
+  intervention: InterventionState | null;
+  interventionLoading: boolean;
+  interventionCooldownSec: number;
 }
 
 function initialSnapshot(): GameSnapshot {
@@ -51,6 +67,14 @@ function initialSnapshot(): GameSnapshot {
     dialogueCooldown: 0,
     dialogueBusy: false,
     logs: [],
+    pendingAppend: null,
+    alexTraits: { diligence: 62, invention: 38 },
+    soilGreenhouse: "良好",
+    cropPolicy: null,
+    systemLog: [],
+    intervention: null,
+    interventionLoading: false,
+    interventionCooldownSec: 10,
   };
 }
 
@@ -72,10 +96,15 @@ function pushLog(s: GameSnapshot, text: string, strong?: boolean) {
   s.logs = next.slice(0, 80);
 }
 
+function pushSystemLog(s: GameSnapshot, line: string) {
+  s.systemLog = [line, ...s.systemLog].slice(0, 60);
+}
+
 export function useFarmGame() {
   const snap = useRef<GameSnapshot>(initialSnapshot());
   const [, force] = useReducer((x: number) => x + 1, 0);
   const runDialogueRef = useRef<() => Promise<void>>(async () => {});
+  const resolvingIntervention = useRef(false);
 
   const getCtx = useCallback(() => {
     const s = snap.current;
@@ -89,6 +118,86 @@ export function useFarmGame() {
     };
   }, []);
 
+  const applyInterventionChoice = useCallback((inv: InterventionState, optionId: string | null) => {
+    const s = snap.current;
+    const payload = inv.payload;
+    const opt =
+      optionId === null
+        ? autoPickOption(payload.options)
+        : payload.options.find((o) => o.id === optionId) ?? autoPickOption(payload.options);
+
+    s.pendingAppend = { alex: payload.appendAlex, mia: payload.appendMia };
+    payload.systemLines.forEach((line) => pushSystemLog(s, line));
+
+    if (opt.type === "narrative") {
+      s.bond = clamp(s.bond + 4, 0, 100);
+      pushLog(s, `【介入·叙述】${opt.titleZh}`, true);
+      pushSystemLog(s, `[SYSTEM] Narrative branch locked: ${opt.titleEn}.`);
+    } else if (opt.type === "system") {
+      s.cropPolicy = `作物多样性倡议 · 第${s.day}天`;
+      s.crops.forEach((c) => {
+        c.tick += 5;
+      });
+      pushLog(s, `【介入·系统】${opt.titleZh}`, true);
+      pushSystemLog(s, `[SYSTEM] LLM approved policy: ${opt.titleEn} — yield calc adjusted.`);
+    } else {
+      s.alexTraits.diligence = clamp(s.alexTraits.diligence - 3, 0, 100);
+      s.alexTraits.invention = clamp(s.alexTraits.invention + 6, 0, 100);
+      pushLog(s, `【介入·个性】${opt.titleZh}`, true);
+      pushSystemLog(s, `[SYSTEM] Alex traits shifted: diligence↓ invention↑ (${opt.titleEn}).`);
+    }
+
+    if (payload.source === "llm") {
+      pushSystemLog(s, "[SYSTEM] Proposal source: LLM.");
+    }
+
+    s.soilGreenhouse = Math.random() < 0.4 ? "最优 Optimal" : s.soilGreenhouse;
+    s.intervention = null;
+    s.interventionCooldownSec = 48 + Math.random() * 35;
+    force();
+  }, []);
+
+  const resolveInterventionIfExpired = useCallback(() => {
+    const s = snap.current;
+    if (!s.intervention || resolvingIntervention.current) return;
+    if (Date.now() < s.intervention.endsAt) return;
+    resolvingIntervention.current = true;
+    applyInterventionChoice(s.intervention, null);
+    resolvingIntervention.current = false;
+  }, [applyInterventionChoice]);
+
+  const chooseIntervention = useCallback(
+    (id: string) => {
+      const s = snap.current;
+      if (!s.intervention) return;
+      resolvingIntervention.current = true;
+      applyInterventionChoice(s.intervention, id);
+      resolvingIntervention.current = false;
+    },
+    [applyInterventionChoice],
+  );
+
+  const startIntervention = useCallback(async () => {
+    const s = snap.current;
+    if (s.intervention || s.interventionLoading || s.dialogueBusy) return;
+    s.interventionLoading = true;
+    s.interventionCooldownSec = 99999;
+    force();
+    try {
+      const payload = await fetchFutureProposal(getCtx());
+      s.intervention = { payload, endsAt: Date.now() + 30000 };
+    } catch (e) {
+      console.warn(e);
+      s.interventionCooldownSec = 25;
+    } finally {
+      s.interventionLoading = false;
+      if (!s.intervention) {
+        s.interventionCooldownSec = Math.min(s.interventionCooldownSec, 30);
+      }
+      force();
+    }
+  }, [getCtx]);
+
   const runDialogueExchange = useCallback(async () => {
     const s = snap.current;
     if (s.dialogueBusy || s.dialogueCooldown > 0) return;
@@ -96,6 +205,14 @@ export function useFarmGame() {
     force();
 
     const result: DialogueResult = await generateAgentDialogue(getCtx());
+
+    let alex = result.alex;
+    let mia = result.mia;
+    if (s.pendingAppend) {
+      alex += `\n\nNEW: ${s.pendingAppend.alex}`;
+      mia += `\n\nNEW: ${s.pendingAppend.mia}`;
+      s.pendingAppend = null;
+    }
 
     const bondGain = 0.8 + Math.random() * 1.8 + (result.meta?.source === "llm" ? 0.5 : 0);
     s.bond = clamp(s.bond + bondGain, 0, 100);
@@ -107,7 +224,7 @@ export function useFarmGame() {
     const src = result.meta?.source === "llm" ? "（真实 LLM）" : "（本地 AI）";
     pushLog(s, `Alex 与 Mia 深度交谈 ${src}`, true);
 
-    s.pendingDialogue = result;
+    s.pendingDialogue = { ...result, alex, mia };
     force();
   }, [getCtx]);
 
@@ -118,6 +235,7 @@ export function useFarmGame() {
     if (welcomeOnce.current) return;
     welcomeOnce.current = true;
     pushLog(snap.current, "欢迎来到田园心语。Alex 与 Mia 正在农场生活，自主对话即将开始……", true);
+    pushSystemLog(snap.current, "[SYSTEM] Session init — player intervention window 30s when proposal active.");
     force();
   }, []);
 
@@ -158,6 +276,9 @@ export function useFarmGame() {
         if (!s.dialogueBusy) {
           s.dialogueCooldown = Math.max(0, s.dialogueCooldown - dt / 1000);
         }
+        if (s.interventionCooldownSec > 0 && s.interventionCooldownSec < 90000) {
+          s.interventionCooldownSec = Math.max(0, s.interventionCooldownSec - (dt / 1000) * s.timeScale);
+        }
         if (Math.random() < 0.002 * s.timeScale) {
           const mid = 42 + Math.random() * 16;
           s.alexPos = clamp(mid - 8 - Math.random() * 6, 22, 48);
@@ -170,13 +291,24 @@ export function useFarmGame() {
         ) {
           void runDialogueRef.current();
         }
+
+        resolveInterventionIfExpired();
+
+        if (
+          !s.intervention &&
+          !s.interventionLoading &&
+          !s.dialogueBusy &&
+          s.interventionCooldownSec <= 0
+        ) {
+          void startIntervention();
+        }
       }
       force();
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [resolveInterventionIfExpired, startIntervention]);
 
   useEffect(() => {
     const t = window.setTimeout(() => void runDialogueRef.current(), 2500);
@@ -203,8 +335,15 @@ export function useFarmGame() {
     force();
   }, []);
 
+  const cur = snap.current;
+  const remainingInterventionSec = cur.intervention
+    ? Math.max(0, Math.ceil((cur.intervention.endsAt - Date.now()) / 1000))
+    : 0;
+
   return {
-    snap: snap.current,
+    snap: cur,
+    remainingInterventionSec,
+    chooseIntervention,
     setPaused,
     setTimeScale,
     clearPendingDialogue,

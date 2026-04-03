@@ -1,7 +1,8 @@
 import "./theme.css";
 import { FarmScene } from "./components/FarmScene";
 import { Hud } from "./components/Hud";
-import { LeftPanel, LogPanel } from "./components/SidePanels";
+import { RightPanel } from "./components/RightPanel";
+import { LeftPanel } from "./components/SidePanels";
 import { useFarmGame } from "./hooks/useFarmGame";
 
 const SEASONS = ["春", "夏", "秋", "冬"];
@@ -11,7 +12,8 @@ function pad2(n: number) {
 }
 
 export default function App() {
-  const { snap, clearPendingDialogue, setPaused, setTimeScale } = useFarmGame();
+  const { snap, clearPendingDialogue, setPaused, setTimeScale, remainingInterventionSec, chooseIntervention } =
+    useFarmGame();
 
   const h = Math.floor(snap.minuteOfGame / 60) % 24;
   const m = Math.floor(snap.minuteOfGame % 60);
@@ -21,7 +23,7 @@ export default function App() {
     <div className="app">
       <header className="top-bar">
         <h1 className="logo">田园心语</h1>
-        <p className="tagline">AI 自主对话 · 农场生活模拟 · React + TypeScript</p>
+        <p className="tagline">AI 自主对话 · 玩家介入 · 农场生活模拟</p>
       </header>
 
       <main className="layout">
@@ -37,7 +39,17 @@ export default function App() {
           />
         </section>
 
-        <LogPanel logs={snap.logs} />
+        <RightPanel
+          logs={snap.logs}
+          systemLog={snap.systemLog}
+          intervention={snap.intervention}
+          interventionLoading={snap.interventionLoading}
+          remainingSec={remainingInterventionSec}
+          alexTraits={snap.alexTraits}
+          soilGreenhouse={snap.soilGreenhouse}
+          cropPolicy={snap.cropPolicy}
+          onChooseOption={chooseIntervention}
+        />
       </main>
 
       <Hud
