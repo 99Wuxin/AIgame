@@ -6,6 +6,7 @@
 # （在 https://dash.cloudflare.com/profile/api-tokens 创建，勿与 OPENROUTER_API_KEY 混用）
 #
 # 也可不用 Wrangler：在 Pages 里只设构建命令为 npm run build、输出目录 dist，由 Pages 自动发布。
+# 若面板强制「Deploy command」必填：填 npm run deploy:noop（仅占位成功退出，不跑 wrangler）。
 # Secrets：OPENROUTER_API_KEY（运行时对话代理，放在 Pages 项目变量里）
 
 name = "aigame"
