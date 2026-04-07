@@ -1,4 +1,6 @@
-# Worker「aigame」：仅响应 /aigame 子路径（与 Worker 99 根域并存）
+# Worker「aigame」：/aigame/ 聊天页，POST /aigame/api/chat → OpenRouter
+# 密钥：wrangler secret put OPENROUTER_API_KEY
+# 本地：根目录 .dev.vars 写 OPENROUTER_API_KEY=sk-or-...
 name = "aigame"
 main = "src/index.js"
 compatibility_date = "2024-11-25"
