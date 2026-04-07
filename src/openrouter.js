@@ -6,7 +6,7 @@ export const DEFAULT_MODEL = "qwen/qwen3.6-plus:free";
 /** 逗号分隔 env OPENROUTER_MODEL_FALLBACKS 可覆盖；顺序即尝试顺序 */
 export const DEFAULT_MODEL_FALLBACKS = [
   "meta-llama/llama-3.2-3b-instruct:free",
-  "google/gemma-2-2b-it:free",
+  "google/gemma-3-4b-it:free",
   "mistralai/mistral-7b-instruct:free"
 ];
 
@@ -71,6 +71,19 @@ function isRateLimited(status, data) {
     if (/rate[- ]?limit/i.test(blob) || /temporarily rate-limited/i.test(blob)) return true;
   }
   return false;
+}
+
+/**
+ * OpenRouter 返回 400 且模型 ID 已下线/拼错时，换下一个备用模型
+ * @param {number} status
+ * @param {unknown} data
+ */
+function isInvalidModelIdError(status, data) {
+  if (status !== 400) return false;
+  if (!data || typeof data !== "object") return false;
+  const err = /** @type {Record<string, unknown>} */ (data).error;
+  const msg = err && typeof err === "object" ? String(/** @type {Record<string, unknown>} */ (err).message || "") : "";
+  return /not a valid model id/i.test(msg);
 }
 
 /**
@@ -237,12 +250,16 @@ export async function openRouterChat(env, body) {
     const status = r.httpStatus >= 400 ? r.httpStatus : 502;
     lastFail = { status, error: r.error, details: r.details };
 
-    const rateLimited = isRateLimited(r.httpStatus, r.data);
-    if (rateLimited && i < chain.length - 1) continue;
+    const tryNext =
+      i < chain.length - 1 &&
+      (isRateLimited(r.httpStatus, r.data) || isInvalidModelIdError(r.httpStatus, r.data));
 
-    if (!rateLimited) {
+    if (tryNext) continue;
+
+    if (i < chain.length - 1) {
       return { ok: false, status, error: r.error, details: r.details };
     }
+    break;
   }
 
   const suffix = `（已依次尝试：${chain.join(" → ")}）`;
