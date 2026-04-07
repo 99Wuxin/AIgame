@@ -1,6 +1,7 @@
 # Worker「aigame」：/aigame/ 聊天页，POST /aigame/api/chat → OpenRouter
 # 密钥：wrangler secret put OPENROUTER_API_KEY
-# 本地：根目录 .dev.vars 写 OPENROUTER_API_KEY=sk-or-...
+# 可选变量（非 Secret）：OPENROUTER_MODEL=meta-llama/llama-3.2-3b-instruct:free
+# 本地：根目录 .dev.vars 写 OPENROUTER_API_KEY=...
 name = "aigame"
 main = "src/index.js"
 compatibility_date = "2024-11-25"

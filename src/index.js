@@ -73,7 +73,10 @@ function chatPageHtml() {
       });
       var data = await res.json().catch(function () { return {}; });
       if (!res.ok) {
-        addMsg("bot", data.error || "请求失败 (" + res.status + ")", "err");
+        var errLine = data.error || "请求失败 (" + res.status + ")";
+        if (data.hint) errLine += "\\n\\n" + data.hint;
+        if (data.details) errLine += "\\n\\n详情：\\n" + data.details;
+        addMsg("bot", errLine, "err");
         messages.pop();
         return;
       }
@@ -148,7 +151,12 @@ export default {
 
       if (!result.ok) {
         return Response.json(
-          { error: result.error },
+          {
+            error: result.error,
+            details: result.details,
+            hint:
+              "常见原因：① Key 无效/欠费 ② 免费模型限流 ③ 在 Cloudflare 变量设 OPENROUTER_MODEL（如 qwen/qwen3.6-plus:free）换模型"
+          },
           { status: result.status >= 400 ? result.status : 502, headers: corsHeaders() }
         );
       }

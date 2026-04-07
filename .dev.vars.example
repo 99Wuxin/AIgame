@@ -1,1 +1,3 @@
 OPENROUTER_API_KEY=sk-or-v1-...
+# 若提示 Provider returned error，可换免费模型试：
+# OPENROUTER_MODEL=meta-llama/llama-3.2-3b-instruct:free
