@@ -18,6 +18,31 @@ function chatPageHtml() {
     .msg.user { align-self: flex-end; background: #2a3145; border: 1px solid var(--border); }
     .msg.bot { align-self: flex-start; background: #1e2433; border: 1px solid var(--border); }
     .msg.err { border-color: #c45c5c; color: #ffb4b4; }
+    .msg.thinking {
+      align-self: flex-start;
+      border-color: var(--accent);
+      background: linear-gradient(105deg, #1e2433 0%, #232a3d 50%, #1e2433 100%);
+      background-size: 200% 100%;
+      animation: thinking-bg 2s ease-in-out infinite;
+    }
+    @keyframes thinking-bg {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .thinking-dots { display: inline-flex; gap: 2px; margin-left: 2px; vertical-align: bottom; }
+    .thinking-dots span {
+      display: inline-block;
+      width: 0.35em;
+      text-align: center;
+      animation: think-dot 1.2s ease-in-out infinite;
+      opacity: 0.35;
+    }
+    .thinking-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes think-dot {
+      0%, 100% { opacity: 0.25; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-2px); }
+    }
     .meta { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
     footer { padding: 12px 16px; border-top: 1px solid var(--border); background: var(--panel); }
     form { display: flex; gap: 8px; max-width: 720px; margin: 0 auto; width: 100%; }
@@ -57,6 +82,17 @@ function chatPageHtml() {
     log.scrollTop = log.scrollHeight;
   }
 
+  function showThinking() {
+    var d = document.createElement("div");
+    d.className = "msg bot thinking";
+    d.setAttribute("role", "status");
+    d.setAttribute("aria-label", "助手正在思考");
+    d.innerHTML = '<span class="thinking-inner">正在思考</span><span class="thinking-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span>';
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+    return d;
+  }
+
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
     var text = ta.value.trim();
@@ -65,6 +101,7 @@ function chatPageHtml() {
     addMsg("user", text);
     messages.push({ role: "user", content: text });
     btn.disabled = true;
+    var thinkingEl = showThinking();
     try {
       var res = await fetch(apiChatUrl(), {
         method: "POST",
@@ -72,6 +109,7 @@ function chatPageHtml() {
         body: JSON.stringify({ messages: messages })
       });
       var data = await res.json().catch(function () { return {}; });
+      thinkingEl.remove();
       if (!res.ok) {
         var errLine = data.error || "请求失败 (" + res.status + ")";
         if (data.hint) errLine += "\\n\\n" + data.hint;
@@ -84,6 +122,7 @@ function chatPageHtml() {
       addMsg("bot", reply);
       messages.push({ role: "assistant", content: reply });
     } catch (err) {
+      thinkingEl.remove();
       addMsg("bot", String(err.message || err), "err");
       messages.pop();
     } finally {
