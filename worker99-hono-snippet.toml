@@ -1,7 +1,0 @@
-# 贴在「Worker 99」使用的 wrangler.toml 里（与 index 同级），与 Dashboard 的 Service binding 二选一即可：
-# —— 若只用 Dashboard 绑定了 AIGAME，下面整段可省略。
-# —— 若用 wrangler 部署 99，需要这段，且 binding / service 名称与 Worker 控制台一致。
-
-[[services]]
-binding = "AIGAME"
-service = "aigame"

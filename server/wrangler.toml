@@ -1,4 +1,0 @@
-# 仅本地 wrangler dev -w server；生产以仓库根目录 wrangler.toml 为准
-name = "aigame"
-main = "src/index.js"
-compatibility_date = "2026-03-23"
