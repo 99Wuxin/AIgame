@@ -144,7 +144,6 @@ export default {
 
       const result = await openRouterChat(env, {
         messages,
-        model: body.model,
         max_tokens: body.max_tokens,
         temperature: body.temperature
       });
@@ -154,8 +153,7 @@ export default {
           {
             error: result.error,
             details: result.details,
-            hint:
-              "常见原因：① Key 无效/欠费 ② 免费模型限流 ③ 在 Cloudflare 变量设 OPENROUTER_MODEL（如 qwen/qwen3.6-plus:free）换模型"
+            hint: "常见原因：① Key 无效/欠费 ② 该免费模型限流或上游异常。当前仅使用 stepfun/step-3.5-flash:free。"
           },
           { status: result.status >= 400 ? result.status : 502, headers: corsHeaders() }
         );
