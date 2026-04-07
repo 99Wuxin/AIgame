@@ -1,0 +1,13 @@
+# Worker「aigame」：仅响应 /aigame 子路径（与 Worker 99 根域并存）
+name = "aigame"
+main = "src/index.js"
+compatibility_date = "2024-11-25"
+workers_dev = true
+
+[[routes]]
+pattern = "statutebill.com/aigame*"
+zone_name = "statutebill.com"
+
+[[routes]]
+pattern = "www.statutebill.com/aigame*"
+zone_name = "statutebill.com"
